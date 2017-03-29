@@ -1,0 +1,140 @@
+#!/usr/bin/perl  -T -I /home/testx/arctica/HACK/convergence/perl/modules
+################################################################################
+#          _____ _
+#         |_   _| |_  ___
+#           | | | ' \/ -_)
+#           |_| |_||_\___|
+#                   _   _             ____            _           _
+#    / \   _ __ ___| |_(_) ___ __ _  |  _ \ _ __ ___ (_) ___  ___| |_
+#   / _ \ | '__/ __| __| |/ __/ _` | | |_) | '__/ _ \| |/ _ \/ __| __|
+#  / ___ \| | | (__| |_| | (_| (_| | |  __/| | | (_) | |  __/ (__| |_
+# /_/   \_\_|  \___|\__|_|\___\__,_| |_|   |_|  \___// |\___|\___|\__|
+#                                                  |__/
+#          The Arctica Modular Remote Computing Framework
+#
+################################################################################
+#
+# Copyright (C) 2015-2016 The Arctica Project
+# http://arctica-project.org/
+#
+# This code is dual licensed: strictly GPL-2 or AGPL-3+
+#
+# GPL-2
+# -----
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; version 2 of the License.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program; if not, write to the
+# Free Software Foundation, Inc.,
+#
+# 51 Franklin St, Fifth Floor, Boston, MA 02110-1301, USA.
+#
+# AGPL-3+
+# -------
+# This programm is free software; you can redistribute it and/or modify
+# it under the terms of the GNU Affero General Public License as published by
+# the Free Software Foundation; either version 3 of the License, or
+# (at your option) any later version.
+#
+# This programm is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU Affero General Public License for more details.
+#
+# You should have received a copy of the GNU Affero General Public License
+# along with this program; if not, write to the
+# Free Software Foundation, Inc.,
+# 51 Franklin St, Fifth Floor, Boston, MA 02110-1301, USA.
+#
+# Copyright (C) 2015-2017 Guangzhou Nianguan Electronics Technology Co.Ltd.
+#                         <opensource@gznianguan.com>
+# Copyright (C) 2015-2017 Mike Gabriel <mike.gabriel@das-netzwerkteam.de>
+#
+################################################################################
+use strict;
+use Data::Dumper;
+use Arctica::Core::eventInit qw(genARandom BugOUT);
+use Arctica::Core::JABus::Socket;
+use Arctica::Services::Audio::ClientGST;
+
+################################################################################
+# Just some stuff to fetch Socket ID from either ARGV or STDIN
+# Watch the log output from server to see what ID the server is.
+my $argsoc = @ARGV[0];$argsoc =~ s/[\ \n]//g;
+if  ($argsoc =~ /^([a-zA-Z0-9]{16,128})$/) {
+	$argsoc = $1;
+} else {
+	print "SOCKET_ID:\t";
+	$argsoc = <STDIN>;$argsoc =~ s/[\ \n]//g;
+	if  ($argsoc =~ /^([a-zA-Z0-9]{16,128})$/) {
+		$argsoc = $1;
+	} else {
+		die;
+	}
+}
+print "CONNECTING TO SOCKET ID: $argsoc\n";
+# 
+################################################################################
+my $ACO = Arctica::Core::eventInit->new({
+	app_name=>'audio-client-test',
+	app_class =>'amoduletester',
+	app_version=>'0.0.1.1'});
+
+my $ClientGST = Arctica::Services::Audio::PulseAudio::ClientGST->new($ACO);
+my $JABusClient = Arctica::Core::JABus::Socket->new($ACO,{
+	type	=>	"unix",
+	destination =>	"local",
+	is_client => 1,
+	connect_to => $argsoc,
+	handle_in_dispatch => {
+#			heartbeat => \&heartbeat, #FIXME heartbeat will be intergrated in RTT and persistency code in JABus...
+			gstctl => \&gstctl_handler,
+	},
+	hooks => {
+		on_ready => \&my_on_ready,
+	},
+	
+});
+
+
+$ACO->{'Glib'}{'MainLoop'}->run;
+
+
+sub gstctl_handler {
+	my $JDATA = $_[0];
+#	my $laSock = $_[1];
+#	print "GSTCTL_JSON:\n",Dumper($JDATA);
+#	print "Action:\t$JDATA->{'action'}\n";
+	if  ($JDATA->{'action'} eq "start") {
+		BugOUT(8,"JACTION IS START");
+		if ($JDATA->{'type'} eq "output") {	
+			$ClientGST->start_output($JDATA->{'idnum'});
+		} elsif ($JDATA->{'type'} eq "input") {	
+			$ClientGST->start_input($JDATA->{'idnum'});
+		} 
+
+
+	} elsif  ($JDATA->{'action'} eq "stop") {
+		BugOUT(8,"JACTION IS STOP");
+		if ($JDATA->{'type'} eq "output") {	
+			$ClientGST->stop_output($JDATA->{'idnum'});
+		} elsif ($JDATA->{'type'} eq "input") {	
+			$ClientGST->stop_input($JDATA->{'idnum'});
+		}
+
+	}
+	
+}
+
+sub my_on_ready {
+#	print "YAY READY ($_[0])\n";
+	$JABusClient->client_send('init',time);
+}
+
