@@ -80,7 +80,7 @@ if  ($argsoc =~ /^([a-zA-Z0-9]{16,128})$/) {
 	}
 }
 print "CONNECTING TO SOCKET ID: $argsoc\n";
-# 
+#
 ################################################################################
 my $ACO = Arctica::Core::eventInit->new({
 	app_name=>'audio-client-test',
@@ -100,7 +100,7 @@ my $JABusClient = Arctica::Core::JABus::Socket->new($ACO,{
 	hooks => {
 		on_ready => \&my_on_ready,
 	},
-	
+
 });
 
 
@@ -114,23 +114,23 @@ sub gstctl_handler {
 #	print "Action:\t$JDATA->{'action'}\n";
 	if  ($JDATA->{'action'} eq "start") {
 		BugOUT(8,"JACTION IS START");
-		if ($JDATA->{'type'} eq "output") {	
+		if ($JDATA->{'type'} eq "output") {
 			$ClientGST->start_output($JDATA->{'idnum'});
-		} elsif ($JDATA->{'type'} eq "input") {	
+		} elsif ($JDATA->{'type'} eq "input") {
 			$ClientGST->start_input($JDATA->{'idnum'});
-		} 
+		}
 
 
 	} elsif  ($JDATA->{'action'} eq "stop") {
 		BugOUT(8,"JACTION IS STOP");
-		if ($JDATA->{'type'} eq "output") {	
+		if ($JDATA->{'type'} eq "output") {
 			$ClientGST->stop_output($JDATA->{'idnum'});
-		} elsif ($JDATA->{'type'} eq "input") {	
+		} elsif ($JDATA->{'type'} eq "input") {
 			$ClientGST->stop_input($JDATA->{'idnum'});
 		}
 
 	}
-	
+
 }
 
 sub my_on_ready {
