@@ -1,4 +1,4 @@
-#!/usr/bin/perl  -T -I /home/testx/arctica/HACK/convergence/perl/modules
+#!/usr/bin/perl  -T -I /audiotest/perlmodules/
 ################################################################################
 #          _____ _
 #         |_   _| |_  ___
@@ -62,12 +62,39 @@ use strict;
 use Data::Dumper;
 use Arctica::Core::eventInit qw(genARandom BugOUT);
 use Arctica::Core::JABus::Socket;
-use Arctica::Services::Audio::ClientGST;
+use Arctica::Services::Audio::Client::ClientGST;
+
+
+my $ACO = Arctica::Core::eventInit->new({
+	app_name=>'audio-client-test',
+	app_class =>'amoduletester',
+	app_version=>'0.0.1.1'});
+
+my $ClientGST = Arctica::Services::Audio::Client::ClientGST->new($ACO);
 
 ################################################################################
 # Just some stuff to fetch Socket ID from either ARGV or STDIN
 # Watch the log output from server to see what ID the server is.
-my $argsoc = @ARGV[0];$argsoc =~ s/[\ \n]//g;
+my $argsoc;
+
+if (@ARGV) {
+	foreach my $arg (@ARGV) {
+		BugOUT(8,"ARG:\t$arg\t:ARG\n");
+
+		if ($arg =~ /^\-ctrl_soc=([a-zA-Z0-9]{16,128})/) {
+			$argsoc = $1;
+		} elsif ($arg =~ /^\-dgst_soc_port\=([io]\d*)\:(\d*)$/) {# FIXME by the time we're doing something with unix sockets this will be looooooong gone...
+			$ClientGST->set_device_gst_port($1,$2);
+		} elsif ($arg =~ /^\-dgst_soc_type\=([a-z]{3,5})/) {
+			$ClientGST->set_device_socket_type($1);
+		}
+
+	}
+} else {
+	BugOUT(0,"NO ARGS?");
+}
+
+
 if  ($argsoc =~ /^([a-zA-Z0-9]{16,128})$/) {
 	$argsoc = $1;
 } else {
@@ -82,12 +109,8 @@ if  ($argsoc =~ /^([a-zA-Z0-9]{16,128})$/) {
 print "CONNECTING TO SOCKET ID: $argsoc\n";
 #
 ################################################################################
-my $ACO = Arctica::Core::eventInit->new({
-	app_name=>'audio-client-test',
-	app_class =>'amoduletester',
-	app_version=>'0.0.1.1'});
 
-my $ClientGST = Arctica::Services::Audio::PulseAudio::ClientGST->new($ACO);
+
 my $JABusClient = Arctica::Core::JABus::Socket->new($ACO,{
 	type	=>	"unix",
 	destination =>	"local",
@@ -109,17 +132,23 @@ $ACO->{'Glib'}{'MainLoop'}->run;
 
 sub gstctl_handler {
 	my $JDATA = $_[0];
-#	my $laSock = $_[1];
-#	print "GSTCTL_JSON:\n",Dumper($JDATA);
-#	print "Action:\t$JDATA->{'action'}\n";
+	my $laSock = $_[1];
+
 	if  ($JDATA->{'action'} eq "start") {
 		BugOUT(8,"JACTION IS START");
 		if ($JDATA->{'type'} eq "output") {
-			$ClientGST->start_output($JDATA->{'idnum'});
-		} elsif ($JDATA->{'type'} eq "input") {
-			$ClientGST->start_input($JDATA->{'idnum'});
-		}
+			$ClientGST->start_output($JDATA->{'idnum'},sub {
+					BugOUT(1,"SINK READY!");
+					$JABusClient->client_send("gstctl",{
+							action => "ready",
+							type   => "output",
+							idnum  => $JDATA->{'idnum'},
+							});
+						});
 
+		} elsif ($JDATA->{'type'} eq "input") {
+			$ClientGST->start_input($JDATA->{'idnum'},$JDATA->{'bitrate'});
+		}
 
 	} elsif  ($JDATA->{'action'} eq "stop") {
 		BugOUT(8,"JACTION IS STOP");
@@ -129,12 +158,18 @@ sub gstctl_handler {
 			$ClientGST->stop_input($JDATA->{'idnum'});
 		}
 
+	} elsif  ($JDATA->{'action'} eq "ch_input_bitrate") {
+		if ($JDATA->{'bitrate'} =~ /^(\d{1,})/) {
+			BugOUT(1,"CHBITRATE: $1");
+			$ClientGST->set_bitrate($1);
+		}
 	}
-
 }
 
+#sub notify_gst_sink_ready
+
 sub my_on_ready {
-#	print "YAY READY ($_[0])\n";
+	print "YAY READY ($_[0])\n";
 	$JABusClient->client_send('init',time);
 }
 
