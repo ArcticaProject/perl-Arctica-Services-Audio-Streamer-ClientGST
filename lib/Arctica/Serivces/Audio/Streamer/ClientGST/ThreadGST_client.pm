@@ -57,7 +57,7 @@
 # Copyright (C) 2015-2016 Mike Gabriel <mike.gabriel@das-netzwerkteam.de>
 #
 ################################################################################
-package Arctica::Services::Audio::Client::ThreadGST_client;
+package Arctica::Services::Audio::Streamer::ClientGST::ThreadGST_client;
 use strict;
 use Exporter qw(import);
 use Arctica::Core::BugOUT::Basics qw( BugOUT );
