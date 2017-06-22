@@ -62,7 +62,7 @@ use strict;
 use Data::Dumper;
 use Arctica::Core::eventInit qw(genARandom BugOUT);
 use Arctica::Core::JABus::Socket;
-use Arctica::Services::Audio::Client::ClientGST;
+use Arctica::Services::Audio::Streamer::ClientGST;
 
 
 my $ACO = Arctica::Core::eventInit->new({
@@ -70,7 +70,7 @@ my $ACO = Arctica::Core::eventInit->new({
 	app_class =>'amoduletester',
 	app_version=>'0.0.1.1'});
 
-my $ClientGST = Arctica::Services::Audio::Client::ClientGST->new($ACO);
+my $ClientGST = Arctica::Services::Audio::Streamer::ClientGST->new($ACO);
 
 ################################################################################
 # Just some stuff to fetch Socket ID from either ARGV or STDIN
