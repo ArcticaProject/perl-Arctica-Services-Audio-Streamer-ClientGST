@@ -19,6 +19,8 @@ Architecture: all
 Depends:
  ${perl:Depends},
  ${misc:Depends},
+ libarctica-core-bugout-perl,
+ libarctica-core-mother-forker-perl,
 Description: Arctica Service: Audio::Streamer::ClientGST
  The Arctica Project brings forth a remote computing framework of
  enterprise grade and quality. The Arctica Framework is a highly
@@ -34,6 +36,8 @@ Depends:
  ${perl:Depends},
  ${misc:Depends},
  libarctica-services-audio-streamer-clientgst-perl (= ${binary:Version}),
+ libarctica-core-perl,
+ libarctica-core-jabus-socket-perl,
 Description: Arctica Service: Audio::Streamer::ClientGST (test client)
  The Arctica Project brings forth a remote computing framework of
  enterprise grade and quality. The Arctica Framework is a highly
